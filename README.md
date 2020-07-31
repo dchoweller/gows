@@ -19,6 +19,8 @@ Sample Response:
     "high": "0.057559",
     "feeCurrency": "BTC"
 }
+
+
 GET /currency/all
 
 Returns the real-time crypto prices of all the supported currencies.
