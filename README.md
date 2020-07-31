@@ -1,11 +1,11 @@
 # gows
-Cryptocurency Server Micro-Service
+## Cryptocurency Server Micro-Service
 
 Makes of the free API from https://api.hitbtc.com/ to return real-time prices of currency symbols.
 
-ENDPOINTS:
+### ENDPOINTS:
 
-GET /currency/{symbol}
+#### GET /currency/{symbol}
 
 Returns the real-time crypto prices of the given currency symbol.
 
@@ -21,7 +21,7 @@ Sample Response:
 }
 
 
-GET /currency/all
+#### GET /currency/all
 
 Returns the real-time crypto prices of all the supported currencies.
 Response:
@@ -49,3 +49,12 @@ Response:
         }
     ]
 }
+
+## ENVIRONMENT VARIABLES
+
+### Specify symbols to be included
+DCHOWELLER_CRYPTO_SYMBOLS="ETHBTC,BTCUSD"
+### Specify hostname for web server
+DCHOWELLER_CRYPTO_HOSTNAME="localhost"
+### Specify port for web server
+DCHOWELLER_CRYPTO_PORT="8080"
