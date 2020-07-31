@@ -334,7 +334,7 @@ func main() {
 
 	}
 
-	server := &http.Server{Addr: ":8080", Handler: setupRoutes()}
+	server := &http.Server{Addr: appConf.Hostname + ":" + appConf.Port, Handler: setupRoutes()}
 
 	go func() {
 		log.Fatal(server.ListenAndServe())
