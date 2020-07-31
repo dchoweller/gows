@@ -335,6 +335,7 @@ func main() {
 	}
 
 	server := &http.Server{Addr: appConf.Hostname + ":" + appConf.Port, Handler: setupRoutes()}
+	log.Printf("Server listening on host %v, port %v...", appConf.Hostname, appConf.Port)
 
 	go func() {
 		log.Fatal(server.ListenAndServe())
