@@ -12,7 +12,8 @@ Returns the real-time crypto prices of the given currency symbol.
 Sample Response:
 
 
-```{
+```
+{
     "id": "ETH",
     "fullName": "Ethereum",
     "ask": "0.054464", "bid": "0.054463",
