@@ -10,6 +10,8 @@ Makes of the free API from https://api.hitbtc.com/ to return real-time prices of
 Returns the real-time crypto prices of the given currency symbol.
 
 Sample Response:
+
+
 ```{
     "id": "ETH",
     "fullName": "Ethereum",
