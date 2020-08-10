@@ -19,12 +19,14 @@ import (
 	"github.com/kelseyhightower/envconfig"
 )
 
+// Application Configuration
 type appConfiguration struct {
 	Hostname string   `default:"localhost"`
 	Port     string   `default:"8080"`
 	Symbols  []string `required:"true"`
 }
 
+// Currency information that will be served by this program
 type currencyInfo struct {
 	ID          string `json:"id"`
 	FullName    string `json:"fullName"`
@@ -37,31 +39,45 @@ type currencyInfo struct {
 	FeeCurrency string `json:"feeCurrency"`
 }
 
+// Concurrency control for currency information
 var currencyInfoLock []sync.Mutex
 
+// Currency information array
 var currencies []currencyInfo
+
+// Map from currency symbol to index in currencies array
 var symbolToIndex map[string]int
 
 var appConf appConfiguration
 
+// Configure app based on environment
+// Default hostname: localhost
+// Default port: 8080
+// Default symbols to include: BTCUSD, ETHBTC
 func doConfig() {
 	err := envconfig.Process("dchoweller_crypto", &appConf)
-	if err != nil {
+	if err != nil { // If error reading environment, use default values
 		appConf.Hostname = "localhost"
 		appConf.Port = "8080"
 		appConf.Symbols = make([]string, 2)
 		appConf.Symbols[0] = "BTCUSD"
 		appConf.Symbols[1] = "ETHBTC"
 	}
+	// Allocate space for currencies array
 	currencies = make([]currencyInfo, len(appConf.Symbols))
+	// Allocate space for map
 	symbolToIndex = make(map[string]int)
+
+	// Initialize concurrency lock for each currencies entry
 	currencyInfoLock = make([]sync.Mutex, len(appConf.Symbols))
 
+	// Initialize symbol to index map
 	for i := range appConf.Symbols {
 		symbolToIndex[appConf.Symbols[i]] = i
 	}
 }
 
+// strcuture retreived by ticker update websocket API
 type tickerUpdate struct {
 	Jsonrpc string `json:"jsonrpc"`
 	Method  string `json:"method"`

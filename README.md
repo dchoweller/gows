@@ -1,7 +1,7 @@
 # gows
 ## Cryptocurency Server Micro-Service
 
-Makes of the free API from https://api.hitbtc.com/ to return real-time prices of currency symbols.
+Makes use of the free API from https://api.hitbtc.com/ to return real-time prices of currency symbols.
 
 ### ENDPOINTS:
 
