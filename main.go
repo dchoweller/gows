@@ -77,7 +77,7 @@ func doConfig() {
 	}
 }
 
-// strcuture retreived by ticker update websocket API
+// strcuture retreived by ticker update websocket API (https://api.hitbtc.com/#subscribe-to-ticker)
 type tickerUpdate struct {
 	Jsonrpc string `json:"jsonrpc"`
 	Method  string `json:"method"`
@@ -95,18 +95,23 @@ type tickerUpdate struct {
 	} `json:"params"`
 }
 
+// Address of websocket to connect to
 var addr = flag.String("addr", "api.hitbtc.com", "http service address")
 
+// Parameter of request to ticket update websocket API (https://api.hitbtc.com/#subscribe-to-ticker)
+// or GetSymbol API (https://api.hitbtc.com/#get-symbols)
 type symbolParam struct {
 	Symbol string `json:"symbol"`
 }
 
+// Command to retrieve ticker update or get Symbol (Method: "getSymbol" or Method: "subscribeTicket")
 type getSymbolCommand struct {
 	Method string      `json:"method"`
 	Params symbolParam `json:"params"`
 	ID     int         `json:"id"`
 }
 
+// Response from GetSymbol API (https://api.hitbtc.com/#get-symbols)
 type getSymbolResponse struct {
 	Jsonrpc string `json:"jsonrpc"`
 	Result  struct {
@@ -122,6 +127,7 @@ type getSymbolResponse struct {
 	ID int `json:"id"`
 }
 
+// Execute GetSymbol API (https://api.hitbtc.com/#get-symbols)
 func getSymbol(c *websocket.Conn, symbol string) (*getSymbolResponse, error) {
 	commandStruct := getSymbolCommand{
 		Method: "getSymbol",
@@ -149,12 +155,14 @@ func getSymbol(c *websocket.Conn, symbol string) (*getSymbolResponse, error) {
 	return &gs, nil
 }
 
+// Command to subscribe to ticker (https://api.hitbtc.com/#subscribe-to-ticker)
 type subscribeTickerCommand struct {
 	Method string      `json:"method"`
 	Params symbolParam `json:"params"`
 	ID     int         `json:"id"`
 }
 
+// Execute subscribe to ticker API
 func subscribeToTicker(c *websocket.Conn, symbol string) (err error) {
 	commandStruct := subscribeTickerCommand{
 		Method: "subscribeTicker",
@@ -168,16 +176,19 @@ func subscribeToTicker(c *websocket.Conn, symbol string) (err error) {
 	return c.WriteMessage(websocket.TextMessage, commandString)
 }
 
+// Parameter of Get Currency API (https://api.hitbtc.com/#get-currencies)
 type getCurrencyParam struct {
 	Currency string `json:"currency"`
 }
 
+// Get Currency request
 type getCurrencyCommand struct {
 	Method string           `json:"method"`
 	Params getCurrencyParam `json:"params"`
 	ID     int              `json:"id"`
 }
 
+// Get Currency response
 type getCurrencyResponse struct {
 	Jsonrpc string `json:"jsonrpc"`
 	Result  struct {
@@ -199,6 +210,7 @@ type getCurrencyResponse struct {
 	ID int `json:"id"`
 }
 
+// Execute Get Currency API
 func getCurrency(c *websocket.Conn, currency string) (*getCurrencyResponse, error) {
 	commandStruct := getCurrencyCommand{
 		Method: "getCurrency",
@@ -226,6 +238,7 @@ func getCurrency(c *websocket.Conn, currency string) (*getCurrencyResponse, erro
 	return &gcs, nil
 }
 
+// Connect to Currency Data websocket
 func connectToAPI() *websocket.Conn {
 	u := url.URL{Scheme: "wss", Host: *addr, Path: "/api/2/ws"}
 	c, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
@@ -235,6 +248,10 @@ func connectToAPI() *websocket.Conn {
 	return c
 }
 
+// For each of the symbols configured, initialize currencies array
+// using the Get Symbol and Get Currency APIs:
+// https://api.hitbtc.com/#get-currencies
+// https://api.hitbtc.com/#get-symbols
 func initializeCurrencyInfo(c *websocket.Conn) error {
 	for i := range appConf.Symbols {
 		gsResponse, gsErr := getSymbol(c, appConf.Symbols[i])
@@ -255,6 +272,7 @@ func initializeCurrencyInfo(c *websocket.Conn) error {
 	return nil
 }
 
+// Set currencies array with regularly updated data from ticker update
 func setCurrencyInfo(tu *tickerUpdate) {
 	currencyIndex := symbolToIndex[tu.Params.Symbol]
 	currencyInfoLock[currencyIndex].Lock()
@@ -268,6 +286,7 @@ func setCurrencyInfo(tu *tickerUpdate) {
 
 }
 
+// Return data for the /GET/currency/{symbol} route
 func getSingleCurrency(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	symbol := vars["symbol"]
@@ -285,10 +304,12 @@ func getSingleCurrency(w http.ResponseWriter, r *http.Request) {
 	currencyInfoLock[currencyIndex].Unlock()
 }
 
+// Response struct for the /GET/currency/all route
 type getAllCurrenciesResponse struct {
 	Currencies []currencyInfo `json:"currencies"`
 }
 
+// Return data for the /GET/currency/all route
 func getAllCurrencies(w http.ResponseWriter, r *http.Request) {
 	numCurrencies := len(currencies)
 	var result []currencyInfo
@@ -306,6 +327,7 @@ func getAllCurrencies(w http.ResponseWriter, r *http.Request) {
 
 }
 
+// Main route handling
 func setupRoutes() *mux.Router {
 	r := mux.NewRouter()
 	r.HandleFunc("/currency/all", getAllCurrencies)
@@ -314,8 +336,8 @@ func setupRoutes() *mux.Router {
 }
 
 func main() {
-	doConfig()
-	flag.Parse()
+	doConfig()   // configuration from environment variables
+	flag.Parse() // command line flags (currently unused)
 	log.SetFlags(0)
 
 	c := connectToAPI()
@@ -323,11 +345,10 @@ func main() {
 
 	initializeCurrencyInfo(c)
 
-	done := make(chan struct{})
-
+	// This goroutine handles periodic ticker updates from currency websocket
 	go func() {
-		defer close(done)
 		for {
+			// Read message from websocket (ticker update)
 			_, message, err := c.ReadMessage()
 			if err != nil {
 				log.Println("read:", err)
@@ -342,6 +363,7 @@ func main() {
 		}
 	}()
 
+	// Subscribe to the ticker update (goroutine above handles updates)
 	for i := range appConf.Symbols {
 		if err := subscribeToTicker(c, appConf.Symbols[i]); err != nil {
 			log.Println("write:", err)
@@ -350,6 +372,7 @@ func main() {
 
 	}
 
+	// Listen for API requests
 	server := &http.Server{Addr: appConf.Hostname + ":" + appConf.Port, Handler: setupRoutes()}
 	log.Printf("Server listening on host %v, port %v...", appConf.Hostname, appConf.Port)
 
@@ -361,6 +384,7 @@ func main() {
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt)
 
+	// Wait for interrupt
 	<-interrupt
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
